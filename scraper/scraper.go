@@ -24,6 +24,7 @@ import (
 	"fmt"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/jirwin/ipfs-archive/version"
 	"github.com/pborman/uuid"
 	"go.uber.org/zap"
 )
@@ -41,12 +42,10 @@ type Scraper struct {
 	client        *http.Client
 }
 
-const version = "0.0.1"
-
 func (s *Scraper) request(url string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept-Encoding", "gzip")
-	req.Header.Set("User-Agent", fmt.Sprintf("ipfs-archive/%s", version))
+	req.Header.Set("User-Agent", fmt.Sprintf("ipfs-archive/%s", version.Version))
 
 	resp, err := s.client.Do(req)
 	if err != nil {

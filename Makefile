@@ -1,6 +1,6 @@
 
 all: clean
-	go install ./cmd/ipfs-archive
+	go install github.com/jirwin/ipfs-archive
 
 clean:
 	rm -rf snapshots
