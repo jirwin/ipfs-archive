@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
+	"context"
+
 	"github.com/jirwin/ipfs-archive/scraper"
 	"go.uber.org/zap"
 	cli "gopkg.in/urfave/cli.v1"
-	"context"
 )
 
 func main() {
@@ -52,7 +53,7 @@ func run(cliCtx *cli.Context) error {
 		return cli.NewExitError(err.Error(), -1)
 	}
 
-	fmt.Println("Finished scraping", url)
+	fmt.Printf("Finished scraping %s to %s\n", scraper.Id, url)
 
 	return nil
 }

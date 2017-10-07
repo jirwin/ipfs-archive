@@ -19,6 +19,8 @@ import (
 
 	"fmt"
 
+	"crypto/tls"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pborman/uuid"
 	"go.uber.org/zap"
@@ -32,7 +34,7 @@ type Scraper struct {
 	baseUrl       *url.URL
 	resourceQueue chan Resource
 	Log           *zap.Logger
-	id            string
+	Id            string
 	client        *http.Client
 }
 
@@ -106,8 +108,7 @@ func (s *Scraper) Scrape() error {
 
 		sel.SetAttr("src", s.rewriteAssetUrl(img))
 
-		s.wg.Add(1)
-		s.resourceQueue <- NewImage(img)
+		s.queueResource(NewImage(img))
 	})
 
 	doc.Find("link").Each(func(i int, sel *goquery.Selection) {
@@ -123,8 +124,7 @@ func (s *Scraper) Scrape() error {
 		sel.SetAttr("href", s.rewriteAssetUrl(link))
 		sel.RemoveAttr("crossorigin")
 
-		s.wg.Add(1)
-		s.resourceQueue <- NewStylesheet(link)
+		s.queueResource(NewStylesheet(link))
 	})
 
 	doc.Find("script").Each(func(i int, sel *goquery.Selection) {
@@ -136,15 +136,14 @@ func (s *Scraper) Scrape() error {
 		sel.SetAttr("src", s.rewriteAssetUrl(scriptSrc))
 		sel.RemoveAttr("crossorigin")
 
-		s.wg.Add(1)
-		s.resourceQueue <- NewScript(scriptSrc)
+		s.queueResource(NewScript(scriptSrc))
 	})
 
 	s.wg.Wait()
 
 	_, indexFilename, err := s.ensureFilename(&index{
 		url: s.seed,
-	})
+	}, nil)
 
 	out, err := os.Create(indexFilename)
 	defer out.Close()
@@ -169,7 +168,7 @@ func (s *Scraper) Scrape() error {
 }
 
 func (s *Scraper) rewriteAssetUrl(rawurl string) string {
-	sUrl, err := s.toAbsUrl(rawurl)
+	sUrl, err := s.toAbsUrl(rawurl, nil)
 	if err != nil {
 		return ""
 	}
@@ -185,17 +184,18 @@ func (s *Scraper) process() error {
 	for {
 		select {
 		case resource := <-s.resourceQueue:
-			s.fetch(resource)
+			go s.fetch(resource)
 
 		case <-s.ctx.Done():
 			s.Log.Info("Context done, stopping fetching.")
 			return nil
+
 		}
 	}
 	return nil
 }
 
-func (s *Scraper) toAbsUrl(rawurl string) (string, error) {
+func (s *Scraper) toAbsUrl(rawurl string, baseUrl *url.URL) (string, error) {
 	relurl, err := url.Parse(rawurl)
 	if err != nil {
 		return "", err
@@ -205,9 +205,14 @@ func (s *Scraper) toAbsUrl(rawurl string) (string, error) {
 		return relurl.String(), nil
 	}
 
+	if baseUrl == nil {
+		baseUrl = s.baseUrl
+	}
+
 	base, err := url.Parse((&url.URL{
-		Scheme: s.baseUrl.Scheme,
-		Host:   s.baseUrl.Host,
+		Scheme: baseUrl.Scheme,
+		Host:   baseUrl.Host,
+		Path:   baseUrl.Path,
 	}).String())
 	if err != nil {
 		return "", err
@@ -217,20 +222,18 @@ func (s *Scraper) toAbsUrl(rawurl string) (string, error) {
 	return absurl.String(), nil
 }
 
-func (s *Scraper) ensureFilename(resource Resource) (string, string, error) {
-	fmt.Println(resource.Url())
-	rUrl, err := s.toAbsUrl(resource.Url())
+func (s *Scraper) ensureFilename(resource Resource, baseUrl *url.URL) (*url.URL, string, error) {
+	rUrl, err := s.toAbsUrl(resource.Url(), baseUrl)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
-	fmt.Println(rUrl)
 
 	parsed, err := url.Parse(rUrl)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 
-	rootFileparts := []string{"snapshots", s.id}
+	rootFileparts := []string{"snapshots", s.Id}
 	var dirPath string
 
 	filepath, filename := path.Split(parsed.Path)
@@ -245,16 +248,16 @@ func (s *Scraper) ensureFilename(resource Resource) (string, string, error) {
 
 	err = os.MkdirAll(dirPath, 0755)
 	if err != nil {
-		return "", "", err
+		return nil, "", err
 	}
 
-	return rUrl, path.Join(dirPath, filename), nil
+	return parsed, path.Join(dirPath, filename), nil
 }
 
 func (s *Scraper) fetch(resource Resource) {
 	defer s.wg.Done()
 
-	realUrl, filename, err := s.ensureFilename(resource)
+	realUrl, filename, err := s.ensureFilename(resource, nil)
 	if err != nil {
 		s.Log.Error("Error ensuring filename",
 			zap.Error(err),
@@ -274,16 +277,17 @@ func (s *Scraper) fetch(resource Resource) {
 		return
 	}
 
-	respReader, err := s.request(realUrl)
+	fmt.Println("Fetching url: ", realUrl.String())
+	respReader, err := s.request(realUrl.String())
 	if err != nil {
 		s.Log.Error("Unable to fetch seed",
 			zap.Error(err),
-			zap.String("url", realUrl),
+			zap.String("url", realUrl.String()),
 		)
 		return
 	}
 
-	transformedResp, err := resource.Transform(respReader)
+	transformedResp, err := resource.Transform(s, realUrl, respReader)
 	if err != nil {
 		s.Log.Error("Error transforming resource", zap.Error(err))
 		return
@@ -298,6 +302,11 @@ func (s *Scraper) fetch(resource Resource) {
 		)
 		return
 	}
+}
+
+func (s *Scraper) queueResource(resource Resource) {
+	s.wg.Add(1)
+	s.resourceQueue <- resource
 }
 
 func NewScraper(ctx context.Context, seed string) *Scraper {
@@ -319,9 +328,12 @@ func NewScraper(ctx context.Context, seed string) *Scraper {
 		seed:          seed,
 		baseUrl:       parsedUrl,
 		resourceQueue: make(chan Resource, 5),
-		id:            uuid.NewUUID().String(),
+		Id:            uuid.NewUUID().String(),
 		client: &http.Client{
 			Timeout: time.Second * 10,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			},
 		},
 	}
 
