@@ -10,7 +10,10 @@ gox -osarch="linux/amd64" -osarch="linux/386" -osarch="darwin/amd64" -osarch="fr
 for i in dist/* ; do
   if [ -d "$i" ]; then
    ARCH=$(basename "$i")
-   zip releases/ipfs-archive_$VERSION_$ARCH.zip dist/$ARCH/ipfs-archive
+   mkdir ipfs-archive_$VERSION
+   cp dist/$ARCH/ipfs-archive ipfs-archive_$VERSION
+   zip -r "releases/ipfs-archive_$VERSION-$ARCH.zip" ipfs-archive_$VERSION
+   rm -rf ipfs-archive_$VERSION
   fi
 done
 
