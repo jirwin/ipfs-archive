@@ -17,9 +17,11 @@ import (
 
 	"compress/zlib"
 
-	"fmt"
-
 	"crypto/tls"
+
+	"io/ioutil"
+
+	"fmt"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pborman/uuid"
@@ -33,14 +35,18 @@ type Scraper struct {
 	seed          string
 	baseUrl       *url.URL
 	resourceQueue chan Resource
+	SnapshotDir   string
 	Log           *zap.Logger
 	Id            string
 	client        *http.Client
 }
 
+const version = "0.0.1"
+
 func (s *Scraper) request(url string) (io.ReadCloser, error) {
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Add("Accept-Encoding", "gzip")
+	req.Header.Set("User-Agent", fmt.Sprintf("ipfs-archive/%s", version))
 
 	resp, err := s.client.Do(req)
 	if err != nil {
@@ -148,7 +154,8 @@ func (s *Scraper) Scrape() error {
 	out, err := os.Create(indexFilename)
 	defer out.Close()
 	if err != nil {
-		s.Log.Error("Error creating file",
+		fmt.Println(s.seed)
+		s.Log.Error("Error creating index file",
 			zap.Error(err),
 			zap.String("filename", indexFilename),
 			zap.String("url", s.seed),
@@ -222,6 +229,15 @@ func (s *Scraper) toAbsUrl(rawurl string, baseUrl *url.URL) (string, error) {
 	return absurl.String(), nil
 }
 
+func (s *Scraper) Cleanup() error {
+	err := os.RemoveAll(s.SnapshotDir)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *Scraper) ensureFilename(resource Resource, baseUrl *url.URL) (*url.URL, string, error) {
 	rUrl, err := s.toAbsUrl(resource.Url(), baseUrl)
 	if err != nil {
@@ -233,7 +249,7 @@ func (s *Scraper) ensureFilename(resource Resource, baseUrl *url.URL) (*url.URL,
 		return nil, "", err
 	}
 
-	rootFileparts := []string{"snapshots", s.Id}
+	rootFileparts := []string{s.SnapshotDir, s.Id}
 	var dirPath string
 
 	filepath, filename := path.Split(parsed.Path)
@@ -257,6 +273,10 @@ func (s *Scraper) ensureFilename(resource Resource, baseUrl *url.URL) (*url.URL,
 func (s *Scraper) fetch(resource Resource) {
 	defer s.wg.Done()
 
+	if resource.Url() == "" {
+		return
+	}
+
 	realUrl, filename, err := s.ensureFilename(resource, nil)
 	if err != nil {
 		s.Log.Error("Error ensuring filename",
@@ -269,18 +289,18 @@ func (s *Scraper) fetch(resource Resource) {
 	out, err := os.Create(filename)
 	defer out.Close()
 	if err != nil {
-		s.Log.Error("Error creating file",
+		s.Log.Error("Error creating resource file",
 			zap.Error(err),
 			zap.String("filename", filename),
-			zap.String("url", resource.Url()),
+			zap.String("url", realUrl.String()),
+			zap.String("resource url", resource.Url()),
 		)
 		return
 	}
 
-	fmt.Println("Fetching url: ", realUrl.String())
 	respReader, err := s.request(realUrl.String())
 	if err != nil {
-		s.Log.Error("Unable to fetch seed",
+		s.Log.Error("Unable to fetch resource",
 			zap.Error(err),
 			zap.String("url", realUrl.String()),
 		)
@@ -321,6 +341,11 @@ func NewScraper(ctx context.Context, seed string) *Scraper {
 		panic(err)
 	}
 
+	snapshotDir, err := ioutil.TempDir("", "ipfs-archive")
+	if err != nil {
+		panic(err)
+	}
+
 	scraper := &Scraper{
 		ctx:           ctx,
 		cancel:        canc,
@@ -329,6 +354,7 @@ func NewScraper(ctx context.Context, seed string) *Scraper {
 		baseUrl:       parsedUrl,
 		resourceQueue: make(chan Resource, 5),
 		Id:            uuid.NewUUID().String(),
+		SnapshotDir:   snapshotDir,
 		client: &http.Client{
 			Timeout: time.Second * 10,
 			Transport: &http.Transport{

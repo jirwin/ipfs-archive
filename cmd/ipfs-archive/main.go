@@ -6,6 +6,15 @@ import (
 
 	"context"
 
+	"os/exec"
+	"path"
+
+	"net/url"
+	"strings"
+
+	"time"
+
+	"github.com/briandowns/spinner"
 	"github.com/jirwin/ipfs-archive/scraper"
 	"go.uber.org/zap"
 	cli "gopkg.in/urfave/cli.v1"
@@ -15,19 +24,13 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "ipfs-archive"
 	app.Usage = "Use to archive url to ipfs"
-	app.Commands = []cli.Command{
-		cli.Command{
-			Name:   "archive",
-			Usage:  "Archive a url to ipfs",
-			Action: run,
-			Flags: []cli.Flag{
-				cli.StringFlag{
-					Name:  "url",
-					Usage: "Archive `URL` to ipfs",
-				},
-			},
+	app.Flags = []cli.Flag{
+		cli.StringFlag{
+			Name:  "url",
+			Usage: "Archive `URL` to ipfs",
 		},
 	}
+	app.Action = run
 
 	app.Run(os.Args)
 }
@@ -45,15 +48,53 @@ func run(cliCtx *cli.Context) error {
 		cli.ShowCommandHelpAndExit(cliCtx, "archive", -1)
 	}
 
-	url := cliCtx.String("url")
+	seedUrl := cliCtx.String("url")
 
-	scraper := scraper.NewScraper(ctx, url)
+	s := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.FinalMSG = fmt.Sprintf("Fetched %s\n", seedUrl)
+	s.Prefix = fmt.Sprintf("Fetching %s ", seedUrl)
+	s.Writer = os.Stderr
+	s.Start()
+
+	scraper := scraper.NewScraper(ctx, seedUrl)
 	err = scraper.Scrape()
 	if err != nil {
 		return cli.NewExitError(err.Error(), -1)
 	}
+	s.Stop()
 
-	fmt.Printf("Finished scraping %s to %s\n", scraper.Id, url)
+	s = spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	s.FinalMSG = fmt.Sprintf("Archived %s\n", seedUrl)
+	s.Prefix = fmt.Sprintf("Archiving %s ", seedUrl)
+	s.Start()
+	cmd := exec.Command("ipfs", "add", "-r", path.Join(scraper.SnapshotDir, scraper.Id))
+	output, err := cmd.Output()
+	if err != nil {
+		logger.Error("Error running ipfs command", zap.Error(err))
+		return cli.NewExitError("", -1)
+	}
+
+	outputLines := strings.Split(string(output), "\n")
+	parts := strings.Split(outputLines[len(outputLines)-2], " ")
+
+	if len(parts) < 2 {
+		return cli.NewExitError("Unexpected ipfs output.", -1)
+	}
+
+	archiveUrl := &url.URL{
+		Scheme: "https",
+		Host:   "ipfs.io",
+		Path:   path.Join("ipfs", parts[1]),
+	}
+
+	s.Stop()
+
+	fmt.Printf("%s is archived at %s\n", seedUrl, archiveUrl.String())
+
+	err = scraper.Cleanup()
+	if err != nil {
+		return cli.NewExitError(err.Error(), -1)
+	}
 
 	return nil
 }
