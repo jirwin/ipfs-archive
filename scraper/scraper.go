@@ -12,39 +12,17 @@ import (
 
 	"sync"
 
+	"compress/gzip"
+	"time"
+
+	"compress/zlib"
+
+	"fmt"
+
 	"github.com/PuerkitoBio/goquery"
 	"github.com/pborman/uuid"
 	"go.uber.org/zap"
 )
-
-type Resource interface {
-	Url() string
-	Index() bool
-}
-
-type index struct {
-	url string
-}
-
-func (i *index) Url() string {
-	return i.url
-}
-
-func (i *index) Index() bool {
-	return true
-}
-
-type asset struct {
-	url string
-}
-
-func (a *asset) Url() string {
-	return a.url
-}
-
-func (a *asset) Index() bool {
-	return false
-}
 
 type Scraper struct {
 	ctx           context.Context
@@ -54,13 +32,67 @@ type Scraper struct {
 	baseUrl       *url.URL
 	resourceQueue chan Resource
 	Log           *zap.Logger
-	rootDir       string
+	id            string
+	client        *http.Client
+}
+
+func (s *Scraper) request(url string) (io.ReadCloser, error) {
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Add("Accept-Encoding", "gzip")
+
+	resp, err := s.client.Do(req)
+	if err != nil {
+		s.Log.Error("Error grabbing url",
+			zap.Error(err),
+			zap.String("url", url),
+		)
+		return nil, err
+	}
+
+	var respReader io.ReadCloser
+	switch resp.Header.Get("Content-Encoding") {
+	case "gzip":
+		respReader, err = gzip.NewReader(resp.Body)
+		if err != nil {
+			s.Log.Error("Error gunzipping response",
+				zap.Error(err),
+				zap.String("url", url),
+			)
+			return nil, err
+		}
+	case "deflate":
+		respReader, err = zlib.NewReader(resp.Body)
+		if err != nil {
+			s.Log.Error("Error deflating response",
+				zap.Error(err),
+				zap.String("url", url),
+			)
+			return nil, err
+		}
+	default:
+		respReader = resp.Body
+	}
+
+	return respReader, nil
 }
 
 func (s *Scraper) Scrape() error {
-	doc, err := goquery.NewDocument(s.seed)
+	reader, err := s.request(s.seed)
+	defer reader.Close()
 	if err != nil {
+		s.Log.Error("Unable to fetch seed",
+			zap.Error(err),
+			zap.String("url", s.seed),
+		)
+		return err
+	}
 
+	doc, err := goquery.NewDocumentFromReader(reader)
+	if err != nil {
+		s.Log.Error("Unable to scrape seed",
+			zap.Error(err),
+			zap.String("seed", s.seed),
+		)
 		return err
 	}
 
@@ -69,18 +101,13 @@ func (s *Scraper) Scrape() error {
 	doc.Find("img").Each(func(i int, sel *goquery.Selection) {
 		img, exists := sel.Attr("src")
 		if !exists {
-			s.Log.Error("img tag with no src",
-				zap.String("tag", sel.Text()),
-			)
 			return
 		}
 
 		sel.SetAttr("src", s.rewriteAssetUrl(img))
 
 		s.wg.Add(1)
-		s.resourceQueue <- &asset{
-			url: img,
-		}
+		s.resourceQueue <- NewImage(img)
 	})
 
 	doc.Find("link").Each(func(i int, sel *goquery.Selection) {
@@ -94,19 +121,15 @@ func (s *Scraper) Scrape() error {
 		}
 
 		sel.SetAttr("href", s.rewriteAssetUrl(link))
+		sel.RemoveAttr("crossorigin")
 
 		s.wg.Add(1)
-		s.resourceQueue <- &asset{
-			url: link,
-		}
+		s.resourceQueue <- NewStylesheet(link)
 	})
 
 	doc.Find("script").Each(func(i int, sel *goquery.Selection) {
 		scriptSrc, exists := sel.Attr("src")
 		if !exists {
-			s.Log.Error("script tag with no src",
-				zap.String("tag", sel.Text()),
-			)
 			return
 		}
 
@@ -114,14 +137,12 @@ func (s *Scraper) Scrape() error {
 		sel.RemoveAttr("crossorigin")
 
 		s.wg.Add(1)
-		s.resourceQueue <- &asset{
-			url: scriptSrc,
-		}
+		s.resourceQueue <- NewScript(scriptSrc)
 	})
 
 	s.wg.Wait()
 
-	indexFilename, err := s.ensureFilename(&index{
+	_, indexFilename, err := s.ensureFilename(&index{
 		url: s.seed,
 	})
 
@@ -196,44 +217,44 @@ func (s *Scraper) toAbsUrl(rawurl string) (string, error) {
 	return absurl.String(), nil
 }
 
-func (s *Scraper) ensureFilename(resource Resource) (string, error) {
+func (s *Scraper) ensureFilename(resource Resource) (string, string, error) {
+	fmt.Println(resource.Url())
 	rUrl, err := s.toAbsUrl(resource.Url())
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
+	fmt.Println(rUrl)
 
 	parsed, err := url.Parse(rUrl)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	rootFileparts := []string{"snapshots", s.rootDir}
+	rootFileparts := []string{"snapshots", s.id}
 	var dirPath string
 
 	filepath, filename := path.Split(parsed.Path)
 
-	if resource.Index() {
+	switch resource.(type) {
+	case *index:
 		dirPath = path.Join(rootFileparts...)
-	} else {
+		filename = "index.html"
+	default:
 		dirPath = path.Join(append(rootFileparts, parsed.Hostname(), filepath)...)
 	}
 
 	err = os.MkdirAll(dirPath, 0755)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	if resource.Index() {
-		return path.Join(dirPath, "index.html"), nil
-	}
-
-	return path.Join(dirPath, filename), nil
+	return rUrl, path.Join(dirPath, filename), nil
 }
 
 func (s *Scraper) fetch(resource Resource) {
 	defer s.wg.Done()
 
-	filename, err := s.ensureFilename(resource)
+	realUrl, filename, err := s.ensureFilename(resource)
 	if err != nil {
 		s.Log.Error("Error ensuring filename",
 			zap.Error(err),
@@ -253,17 +274,22 @@ func (s *Scraper) fetch(resource Resource) {
 		return
 	}
 
-	resp, err := http.Get(resource.Url())
-	defer resp.Body.Close()
+	respReader, err := s.request(realUrl)
 	if err != nil {
-		s.Log.Error("Error grabbing url",
+		s.Log.Error("Unable to fetch seed",
 			zap.Error(err),
-			zap.String("url", resource.Url()),
+			zap.String("url", realUrl),
 		)
 		return
 	}
 
-	_, err = io.Copy(out, resp.Body)
+	transformedResp, err := resource.Transform(respReader)
+	if err != nil {
+		s.Log.Error("Error transforming resource", zap.Error(err))
+		return
+	}
+
+	_, err = io.Copy(out, transformedResp)
 	if err != nil {
 		s.Log.Error("Error writing file",
 			zap.Error(err),
@@ -293,7 +319,10 @@ func NewScraper(ctx context.Context, seed string) *Scraper {
 		seed:          seed,
 		baseUrl:       parsedUrl,
 		resourceQueue: make(chan Resource, 5),
-		rootDir:       uuid.NewUUID().String(),
+		id:            uuid.NewUUID().String(),
+		client: &http.Client{
+			Timeout: time.Second * 10,
+		},
 	}
 
 	return scraper
