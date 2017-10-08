@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 )
@@ -87,7 +88,7 @@ func (i *stylesheet) Transform(scraper *Scraper, srcUrl *url.URL, reader io.Read
 		return nil, err
 	}
 
-	styleUrlRegex.ReplaceAllFunc(buf, func(match []byte) []byte {
+	buf = styleUrlRegex.ReplaceAllFunc(buf, func(match []byte) []byte {
 		urlMatch := string(match[4 : len(match)-1])
 		rUrl := trimQuotes(urlMatch)
 		if strings.HasPrefix(rUrl, "data:") {
@@ -96,14 +97,31 @@ func (i *stylesheet) Transform(scraper *Scraper, srcUrl *url.URL, reader io.Read
 
 		asset := NewAsset(rUrl)
 
-		absUrl, filename, err := scraper.ensureFilename(asset, srcUrl)
+		absUrl, _, err := scraper.ensureFilename(asset, nil)
 		if err != nil {
 			return match
 		}
 
 		scraper.queueResource(NewAsset(absUrl.String()))
 
-		return []byte(fmt.Sprintf("url(%s)", filename))
+		var resourcePath string
+		if strings.HasPrefix(rUrl, "/") {
+			relPath := []string{}
+			srcPathParts := strings.Split(srcUrl.Path, "/")
+			for range srcPathParts[:len(srcPathParts)-2] {
+				relPath = append(relPath, "..")
+			}
+
+			relPath = append(relPath, rUrl[1:])
+
+			resourcePath = path.Join(relPath...)
+		} else {
+			resourcePath = (&url.URL{
+				Path: path.Join(absUrl.Hostname(), absUrl.Path),
+			}).String()
+		}
+
+		return []byte(fmt.Sprintf("url(%s)", resourcePath))
 	})
 
 	return bytes.NewReader(buf), nil
