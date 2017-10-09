@@ -25,7 +25,6 @@ import (
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/jirwin/ipfs-archive/version"
-	"github.com/pborman/uuid"
 	"go.uber.org/zap"
 )
 
@@ -328,11 +327,8 @@ func (s *Scraper) queueResource(resource Resource) {
 	s.resourceQueue <- resource
 }
 
-func NewScraper(ctx context.Context, seed string) *Scraper {
-	logger, ok := ctx.Value("logger").(*zap.Logger)
-	if !ok {
-		panic("not a logger")
-	}
+func NewScraper(ctx context.Context, id, seed string) *Scraper {
+	logger, err := zap.NewProduction()
 	ctx, canc := context.WithCancel(ctx)
 
 	parsedUrl, err := url.Parse(seed)
@@ -348,11 +344,11 @@ func NewScraper(ctx context.Context, seed string) *Scraper {
 	scraper := &Scraper{
 		ctx:           ctx,
 		cancel:        canc,
-		Log:           logger.Named("scraper"),
+		Log:           logger.Named(fmt.Sprintf("scraper-%s", id)),
 		seed:          seed,
 		baseUrl:       parsedUrl,
 		resourceQueue: make(chan Resource, 5),
-		Id:            uuid.NewUUID().String(),
+		Id:            id,
 		SnapshotDir:   snapshotDir,
 		client: &http.Client{
 			Timeout: time.Second * 10,

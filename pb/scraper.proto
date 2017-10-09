@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package scraper;
+
+service ScraperService {
+    rpc Scrape(ScrapeReq) returns (ScrapeResp) {}
+}
+
+message ScrapeReq {
+    string id = 1;
+    string url = 2;
+}
+
+message ScrapeResp {
+    string id = 1;
+    string archive_url = 2;
+}

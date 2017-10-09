@@ -17,6 +17,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/jirwin/ipfs-archive/scraper"
 	"github.com/jirwin/ipfs-archive/version"
+	"github.com/pborman/uuid"
 	"go.uber.org/zap"
 	cli "gopkg.in/urfave/cli.v1"
 )
@@ -58,7 +59,7 @@ func run(cliCtx *cli.Context) error {
 	s.Writer = os.Stderr
 	s.Start()
 
-	scraper := scraper.NewScraper(ctx, seedUrl)
+	scraper := scraper.NewScraper(ctx, uuid.New(), seedUrl)
 	err = scraper.Scrape()
 	if err != nil {
 		return cli.NewExitError(err.Error(), -1)
