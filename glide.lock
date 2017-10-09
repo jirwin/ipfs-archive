@@ -1,5 +1,5 @@
 hash: 49531ce252ff5de658f4f49ba16bfc00bb9309954707020b3ca210c65020d21d
-updated: 2017-10-07T16:27:44.841899-07:00
+updated: 2017-10-09T01:30:25.889559-07:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 349dd0209470eabd9514242c688c403c0926d266
@@ -7,6 +7,11 @@ imports:
   version: 48dbb65d7bd5c74ab50d53d04c949f20e3d14944
 - name: github.com/fatih/color
   version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+- name: github.com/golang/protobuf
+  version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
+  subpackages:
+  - proto
+  - ptypes/any
 - name: github.com/mattn/go-colorable
   version: 5411d3eea5978e6cdc258b30de592b60df6aba96
   repo: https://github.com/mattn/go-colorable
@@ -31,13 +36,47 @@ imports:
 - name: golang.org/x/net
   version: 30f03014b4f11f9f238fdeca8cca734746a24fbb
   subpackages:
+  - context
   - html
   - html/atom
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
 - name: golang.org/x/sys
   version: e24f485414aeafb646f6fca458b0bf869c0880a1
   repo: https://go.googlesource.com/sys
   subpackages:
   - unix
+- name: golang.org/x/text
+  version: 4e9ab9ee170f2a39bd66c92b3e0a47ff47a4bc77
+  subpackages:
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
+- name: google.golang.org/genproto
+  version: aa2eb687b4d3e17154372564ad8d6bf11c3cf21f
+  subpackages:
+  - googleapis/rpc/status
+- name: google.golang.org/grpc
+  version: 1d797552aeb8789a732a9f8f5bee2ff2bae3e34c
+  subpackages:
+  - codes
+  - credentials
+  - grpclb/grpc_lb_v1
+  - grpclog
+  - internal
+  - keepalive
+  - metadata
+  - naming
+  - peer
+  - stats
+  - status
+  - tap
+  - transport
 - name: gopkg.in/urfave/cli.v1
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
 testImports: []
