@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 VERSION=$(git describe --tags)
 echo "Publishing $VERSION..."
@@ -10,14 +10,14 @@ gox -osarch="linux/amd64" -osarch="linux/386" -osarch="darwin/amd64" -osarch="fr
 for i in dist/* ; do
   if [ -d "$i" ]; then
    ARCH=$(basename "$i")
-   mkdir ipfs-archive_$VERSION
-   cp dist/$ARCH/ipfs-archive ipfs-archive_$VERSION
-   zip -r "releases/ipfs-archive_$VERSION-$ARCH.zip" ipfs-archive_$VERSION
-   rm -rf ipfs-archive_$VERSION
+   mkdir "ipfs-archive_$VERSION"
+   cp "dist/$ARCH/ipfs-archive ipfs-archive_$VERSION"
+   zip -r "releases/ipfs-archive_$VERSION-$ARCH.zip" "ipfs-archive_$VERSION"
+   rm -rf "ipfs-archive_$VERSION"
   fi
 done
 
-ghr -t $GITHUB_TOKEN -u jirwin -r ipfs-archive --replace $VERSION releases/
+ghr -t "$GITHUB_TOKEN" -u jirwin -r ipfs-archive --replace "$VERSION" releases/
 
 rm -rf dist
 rm -rf releases
