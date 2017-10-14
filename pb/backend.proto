@@ -1,8 +1,9 @@
 syntax = "proto3";
 
-package scraper;
+package backend;
 
-service ScraperService {
+service BackendService {
+    rpc Pin(PinReq) returns (PinResp) {}
     rpc Scrape(ScrapeReq) returns (ScrapeResp) {}
 }
 
@@ -14,4 +15,13 @@ message ScrapeReq {
 message ScrapeResp {
     string id = 1;
     string archive_url = 2;
+}
+
+message PinReq {
+    string id = 1;
+    string hash = 2;
+}
+
+message PinResp {
+    string id = 1;
 }
