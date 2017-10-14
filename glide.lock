@@ -1,27 +1,78 @@
 hash: 49531ce252ff5de658f4f49ba16bfc00bb9309954707020b3ca210c65020d21d
-updated: 2017-10-09T01:30:25.889559-07:00
+updated: 2017-10-14T04:55:41.892802-07:00
 imports:
 - name: github.com/andybalholm/cascadia
   version: 349dd0209470eabd9514242c688c403c0926d266
+- name: github.com/asaskevich/govalidator
+  version: ca5f9e638c83bac66bfac70ded5bded1503135a7
 - name: github.com/briandowns/spinner
   version: 48dbb65d7bd5c74ab50d53d04c949f20e3d14944
+- name: github.com/docker/go-units
+  version: 0dadbb0345b35ec7ef35e228dabb8de89a65bf52
 - name: github.com/fatih/color
   version: 5df930a27be2502f99b292b7cc09ebad4d0891f4
+- name: github.com/go-openapi/analysis
+  version: 8ed83f2ea9f00f945516462951a288eaa68bf0d6
+- name: github.com/go-openapi/errors
+  version: 03cfca65330da08a5a440053faf994a3c682b5bf
+- name: github.com/go-openapi/jsonpointer
+  version: 779f45308c19820f1a69e9a4cd965f496e0da10f
+- name: github.com/go-openapi/jsonreference
+  version: 36d33bfe519efae5632669801b180bf1a245da3b
+- name: github.com/go-openapi/loads
+  version: a80dea3052f00e5f032e860dd7355cd0cc67e24d
+- name: github.com/go-openapi/runtime
+  version: e8231e16de5bcda9839e03ae07c5c96a1fd82041
+  subpackages:
+  - flagext
+  - middleware
+  - middleware/denco
+  - middleware/header
+  - middleware/untyped
+  - security
+- name: github.com/go-openapi/spec
+  version: 48c2a7185575f9103a5a3863eff950bb776899d2
+- name: github.com/go-openapi/strfmt
+  version: 610b6cacdcde6852f4de68998bd20ce1dac85b22
+- name: github.com/go-openapi/swag
+  version: f3f9494671f93fcff853e3c6e9e948b3eb71e590
+- name: github.com/go-openapi/validate
+  version: dc8a684882cf70c9a529887104340f44e0e138e5
+- name: github.com/gogo/protobuf
+  version: 100ba4e885062801d56799d78530b73b178a78f3
+  subpackages:
+  - proto
 - name: github.com/golang/protobuf
   version: 6a1fa9404c0aebf36c879bc50152edcc953910d2
   subpackages:
   - proto
   - ptypes/any
+- name: github.com/jessevdk/go-flags
+  version: f88afde2fa19a30cf50ba4b05b3d13bc6bae3079
+- name: github.com/mailru/easyjson
+  version: 2a92e673c9a6302dd05c3a691ae1f24aef46457d
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
 - name: github.com/mattn/go-colorable
   version: 5411d3eea5978e6cdc258b30de592b60df6aba96
   repo: https://github.com/mattn/go-colorable
 - name: github.com/mattn/go-isatty
   version: 57fdcb988a5c543893cc61bce354a6e24ab70022
   repo: https://github.com/mattn/go-isatty
+- name: github.com/mitchellh/mapstructure
+  version: d0303fe809921458f417bcf828397a65db30a7e4
 - name: github.com/pborman/uuid
   version: e790cca94e6cc75c7064b1332e63811d4aae1a53
 - name: github.com/PuerkitoBio/goquery
   version: 8806ada2a4ab225c06e9106f9631be80932db7ce
+- name: github.com/PuerkitoBio/purell
+  version: fd18e053af8a4ff11039269006e8037ff374ce0e
+- name: github.com/PuerkitoBio/urlesc
+  version: de5bf2ad457846296e2031421a34e2568e304e35
+- name: github.com/tylerb/graceful
+  version: d72b0151351a13d0421b763b88f791469c4f5dc7
 - name: go.uber.org/atomic
   version: 4e336646b2ef9fc6e47be8e21594178f98e5ebcf
 - name: go.uber.org/zap
@@ -57,6 +108,7 @@ imports:
   - transform
   - unicode/bidi
   - unicode/norm
+  - width
 - name: google.golang.org/genproto
   version: aa2eb687b4d3e17154372564ad8d6bf11c3cf21f
   subpackages:
@@ -77,6 +129,13 @@ imports:
   - status
   - tap
   - transport
+- name: gopkg.in/mgo.v2
+  version: 3f83fa5005286a7fe593b055f0d7771a7dce4655
+  subpackages:
+  - bson
+  - internal/json
 - name: gopkg.in/urfave/cli.v1
   version: cfb38830724cc34fedffe9a2a29fb54fa9169cd1
+- name: gopkg.in/yaml.v2
+  version: cd8b52f8269e0feb286dfeef29f8fe4d5b397e0b
 testImports: []

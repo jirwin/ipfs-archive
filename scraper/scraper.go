@@ -327,8 +327,7 @@ func (s *Scraper) queueResource(resource Resource) {
 	s.resourceQueue <- resource
 }
 
-func NewScraper(ctx context.Context, id, seed string) *Scraper {
-	logger, err := zap.NewProduction()
+func NewScraper(ctx context.Context, logger *zap.Logger, id, seed string) *Scraper {
 	ctx, canc := context.WithCancel(ctx)
 
 	parsedUrl, err := url.Parse(seed)

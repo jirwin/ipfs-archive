@@ -1,0 +1,61 @@
+---
+consumes:
+- application/json
+info:
+  description: ipfs-archive
+  title: The web api for ipfs-archive
+  version: 1.0.0
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"
+definitions:
+  ArchiveRequest:
+    type: object
+    required:
+      - url
+    properties:
+      url:
+        type: string
+        minLength: 1
+  ArchiveResponse:
+    type: object
+    properties:
+      id:
+        type: string
+        readOnly: true
+      archived_url:
+        type: string
+        readOnly: true
+  Error:
+    type: object
+    required:
+      - message
+    properties:
+      message:
+        type: string
+        readOnly: true
+paths:
+  /archive:
+    post:
+      summary: Archive a URL
+      operationId: archiveUrl
+      parameters:
+        - name: body
+          in: body
+          description: The URL to archive
+          required: true
+          schema:
+            $ref: '#/definitions/ArchiveRequest'
+      tags:
+        - ipfs
+      responses:
+        "201":
+          description: Archive Response
+          schema:
+            $ref: '#/definitions/ArchiveResponse'
+        500:
+          description: Archive Error
+          schema:
+            $ref: '#/definitions/Error'

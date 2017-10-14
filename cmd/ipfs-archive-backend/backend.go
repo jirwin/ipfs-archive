@@ -16,8 +16,8 @@ import (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "ipfs-scraper"
-	app.Usage = "IPFS scraper service"
+	app.Name = "ipfs-archive-backend"
+	app.Usage = "IPFS backend service"
 	app.Version = version.Version
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
@@ -34,8 +34,11 @@ func main() {
 func run(cliCtx *cli.Context) error {
 	ctx := context.Background()
 	logger, err := zap.NewProduction()
+	if err != nil {
+		panic(err)
+	}
 
-	backendServer := backend.NewServer(ctx)
+	backendServer := backend.NewServer(ctx, logger.Named("ipfs-backend-server"))
 	listenAddr := cliCtx.String("address")
 
 	lis, err := net.Listen("tcp", listenAddr)

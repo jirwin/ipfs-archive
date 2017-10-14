@@ -59,7 +59,7 @@ func run(cliCtx *cli.Context) error {
 	s.Writer = os.Stderr
 	s.Start()
 
-	scraper := scraper.NewScraper(ctx, uuid.New(), seedUrl)
+	scraper := scraper.NewScraper(ctx, logger, uuid.New(), seedUrl)
 	err = scraper.Scrape()
 	if err != nil {
 		return cli.NewExitError(err.Error(), -1)

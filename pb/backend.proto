@@ -15,6 +15,7 @@ message ScrapeReq {
 message ScrapeResp {
     string id = 1;
     string archive_url = 2;
+    string hash = 3;
 }
 
 message PinReq {

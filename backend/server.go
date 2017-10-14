@@ -36,7 +36,7 @@ func (b *BackendServer) runIpfsCmd(cmdArgs []string) ([]byte, error) {
 
 func (b *BackendServer) Scrape(ctx netctx.Context, req *ScrapeReq) (*ScrapeResp, error) {
 	scrapeCtx, _ := context.WithTimeout(ctx, time.Second*30)
-	sc := scraper.NewScraper(scrapeCtx, req.Id, req.Url)
+	sc := scraper.NewScraper(scrapeCtx, b.logger, req.Id, req.Url)
 
 	err := sc.Scrape()
 	if err != nil {
@@ -58,15 +58,18 @@ func (b *BackendServer) Scrape(ctx netctx.Context, req *ScrapeReq) (*ScrapeResp,
 		return nil, status.Error(codes.Internal, "Invalid IPFS output")
 	}
 
+	hash := parts[1]
+
 	archiveUrl := &url.URL{
 		Scheme: "https",
 		Host:   "ipfs.io",
-		Path:   path.Join("ipfs", parts[1]),
+		Path:   path.Join("ipfs", hash),
 	}
 
 	resp := &ScrapeResp{
 		Id:         req.Id,
 		ArchiveUrl: archiveUrl.String(),
+		Hash:       hash,
 	}
 
 	return resp, nil
@@ -89,14 +92,9 @@ func (b *BackendServer) Pin(ctx netctx.Context, req *PinReq) (*PinResp, error) {
 	}, nil
 }
 
-func NewServer(ctx context.Context) BackendServiceServer {
-	logger, err := zap.NewProduction()
-	if err != nil {
-		panic(err)
-	}
-
+func NewServer(ctx context.Context, logger *zap.Logger) BackendServiceServer {
 	return &BackendServer{
 		ctx:    ctx,
-		logger: logger.Named("backend_server"),
+		logger: logger,
 	}
 }
