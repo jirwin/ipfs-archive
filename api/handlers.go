@@ -1,4 +1,5 @@
 //go:generate swagger generate server -t swagger -f ./swagger.yml --exclude-main -A api
+//go:generate swagger-codegen generate -i ./swagger.yml -l javascript -o ../frontend/client
 
 package api
 

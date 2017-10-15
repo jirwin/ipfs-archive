@@ -35,6 +35,7 @@ Vagrant.configure(2) do |config|
   SCRIPT
 
   config.vm.synced_folder "../../../", "/home/vagrant/go/src", type: "sshfs"
+  config.vm.network "forwarded_port", guest: 7002, host: 7002
 
 
   config.vm.provision "shell", inline: $script, privileged: false

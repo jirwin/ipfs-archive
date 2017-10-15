@@ -2,13 +2,14 @@
 consumes:
 - application/json
 info:
-  description: ipfs-archive
-  title: The web api for ipfs-archive
+  description: The web api for ipfs-archive
+  title: ipfs-archive
   version: 1.0.0
 produces:
 - application/json
 schemes:
-- http
+  - http
+host: localhost:7002
 swagger: "2.0"
 definitions:
   ArchiveRequest:

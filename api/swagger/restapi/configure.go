@@ -4,15 +4,15 @@ package restapi
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
 
 	errors "github.com/go-openapi/errors"
 	runtime "github.com/go-openapi/runtime"
-	middleware "github.com/go-openapi/runtime/middleware"
+	"github.com/rs/cors"
 	graceful "github.com/tylerb/graceful"
 
 	"github.com/jirwin/ipfs-archive/api/swagger/restapi/operations"
-	"github.com/jirwin/ipfs-archive/api/swagger/restapi/operations/ipfs"
 )
 
 // This file is safe to edit. Once it exists it will not be overwritten
@@ -37,9 +37,9 @@ func configureAPI(api *operations.API) http.Handler {
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	api.IPFSArchiveURLHandler = ipfs.ArchiveURLHandlerFunc(func(params ipfs.ArchiveURLParams) middleware.Responder {
-		return middleware.NotImplemented("operation ipfs.ArchiveURL has not yet been implemented")
-	})
+	//api.IPFSArchiveURLHandler = ipfs.ArchiveURLHandlerFunc(func(params ipfs.ArchiveURLParams) middleware.Responder {
+	//	return middleware.NotImplemented("operation ipfs.ArchiveURL has not yet been implemented")
+	//})
 
 	api.ServerShutdown = func() {}
 
@@ -67,5 +67,13 @@ func setupMiddlewares(handler http.Handler) http.Handler {
 // The middleware configuration happens before anything, this middleware also applies to serving the swagger.json document.
 // So this is a good place to plug in a panic handling middleware, logging and metrics
 func setupGlobalMiddleware(handler http.Handler) http.Handler {
-	return handler
+	fmt.Println("Setting up global middleware")
+	corsHandler := cors.New(cors.Options{
+		Debug:          true,
+		AllowedHeaders: []string{"*"},
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"POST"},
+		MaxAge:         1000,
+	})
+	return corsHandler.Handler(handler)
 }

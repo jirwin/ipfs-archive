@@ -53,6 +53,8 @@ func run(cliCtx *cli.Context) error {
 	handler := api.NewServer(ctx, logger, []string{"localhost:7001"})
 	handler.Handle(swaggerApi)
 
+	server.SetAPI(swaggerApi)
+
 	server.Port = cliCtx.Int("port")
 	go func() {
 		if err := server.Serve(); err != nil {

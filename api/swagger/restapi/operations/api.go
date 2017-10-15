@@ -43,7 +43,7 @@ func NewAPI(spec *loads.Document) *API {
 	}
 }
 
-/*API ipfs-archive */
+/*API The web api for ipfs-archive */
 type API struct {
 	spec            *loads.Document
 	context         *middleware.Context

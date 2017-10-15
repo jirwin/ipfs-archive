@@ -25,10 +25,11 @@ func init() {
   ],
   "swagger": "2.0",
   "info": {
-    "description": "ipfs-archive",
-    "title": "The web api for ipfs-archive",
+    "description": "The web api for ipfs-archive",
+    "title": "ipfs-archive",
     "version": "1.0.0"
   },
+  "host": "localhost:7002",
   "paths": {
     "/archive": {
       "post": {
