@@ -19,7 +19,7 @@ export function* archive() {
   try {
     const { archiveResp, timeout } = yield race({
       archiveResp: cps([api, api.archiveUrl], body),
-      timeout: call(delay, 5000),
+      timeout: call(delay, 30 * 1000),
     });
 
     if (archiveResp) { yield put(archiveResponse({ archived_url: archiveResp.archived_url })); } else { yield put(archiveError("Server didn't respond in time.")); }
