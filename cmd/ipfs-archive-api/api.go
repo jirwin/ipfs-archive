@@ -21,10 +21,14 @@ func main() {
 	app.Usage = "IPFS api service"
 	app.Version = version.Version
 	app.Flags = []cli.Flag{
-		cli.IntFlag{
-			Name:  "port,p",
-			Usage: "The port to listen on",
-			Value: 7002,
+		cli.StringFlag{
+			Name:  "address,a",
+			Usage: "The address to listen on",
+		},
+
+		cli.StringSliceFlag{
+			Name:  "backend,b",
+			Usage: "The ipfs-archive backends to connect to.",
 		},
 	}
 	app.Action = run
@@ -39,18 +43,26 @@ func run(cliCtx *cli.Context) error {
 		panic(err)
 	}
 
+	if !cliCtx.IsSet("address") {
+		cli.ShowAppHelpAndExit(cliCtx, -1)
+	}
+
+	if !cliCtx.IsSet("backend") {
+		cli.ShowAppHelpAndExit(cliCtx, -1)
+	}
+
 	// load embedded swagger file
 	swaggerSpec, err := loads.Analyzed(restapi.SwaggerJSON, "")
 	if err != nil {
 		logger.Error("Error loading swaggerApi", zap.Error(err))
-		return cli.NewExitError("", -1)
+		return cli.NewExitError("Unable to start api.", -1)
 	}
 
 	// create new service API
 	swaggerApi := operations.NewAPI(swaggerSpec)
 	server := restapi.NewServer(swaggerApi)
 
-	handler := api.NewServer(ctx, logger, []string{"localhost:7001"})
+	handler := api.NewServer(ctx, logger, cliCtx.StringSlice("backend"))
 	handler.Handle(swaggerApi)
 
 	server.SetAPI(swaggerApi)
