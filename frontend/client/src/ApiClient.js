@@ -46,9 +46,9 @@
     /**
      * The base URL against which to resolve every API call's (relative) path.
      * @type {String}
-     * @default http://localhost:7002
+     * @default https://ipfs.archive.network/api
      */
-    this.basePath = 'http://localhost:7002'.replace(/\/+$/, '');
+    this.basePath = 'https://ipfs.archive.network/api'.replace(/\/+$/, '');
 
     /**
      * The authentication methods to be included for all API calls.

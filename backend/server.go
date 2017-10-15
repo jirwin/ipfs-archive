@@ -82,7 +82,7 @@ func (b *BackendServer) Pin(ctx netctx.Context, req *PinReq) (*PinResp, error) {
 		return nil, status.Error(codes.InvalidArgument, "You must provide a hash to pin.")
 	}
 
-	_, err := b.runIpfsCmd([]string{"pin", hash})
+	_, err := b.runIpfsCmd([]string{"pin", "add", hash})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "Error pinning hash: %s", hash)
 	}

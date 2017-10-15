@@ -6,10 +6,9 @@ info:
   title: ipfs-archive
   version: 1.0.0
 produces:
-- application/json
-schemes:
-  - http
-host: localhost:7002
+  - application/json
+host: ipfs.archive.network
+basePath: /api
 swagger: "2.0"
 definitions:
   ArchiveRequest:

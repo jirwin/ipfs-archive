@@ -9,6 +9,12 @@ import (
 	"go.uber.org/zap"
 	"gopkg.in/urfave/cli.v1"
 
+	"net"
+
+	"strconv"
+
+	"syscall"
+
 	"github.com/jirwin/ipfs-archive/api"
 	"github.com/jirwin/ipfs-archive/api/swagger/restapi"
 	"github.com/jirwin/ipfs-archive/api/swagger/restapi/operations"
@@ -67,15 +73,26 @@ func run(cliCtx *cli.Context) error {
 
 	server.SetAPI(swaggerApi)
 
-	server.Port = cliCtx.Int("port")
+	host, port, err := net.SplitHostPort(cliCtx.String("address"))
+	if err != nil {
+		panic(err)
+	}
+
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		panic(err)
+	}
+	server.Host = host
+	server.Port = intPort
+
 	go func() {
 		if err := server.Serve(); err != nil {
 			logger.Fatal(err.Error(), zap.Error(err))
 		}
 	}()
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	stop := make(chan os.Signal, 2)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	<-stop
 

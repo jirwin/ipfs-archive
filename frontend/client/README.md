@@ -113,7 +113,7 @@ api.archiveUrl(body, callback);
 
 ## Documentation for API Endpoints
 
-All URIs are relative to *http://localhost:7002*
+All URIs are relative to *https://ipfs.archive.network/api*
 
 Class | Method | HTTP request | Description
 ------------ | ------------- | ------------- | -------------

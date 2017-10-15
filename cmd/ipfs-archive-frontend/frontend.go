@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 
 	"go.uber.org/zap"
 
@@ -52,8 +53,8 @@ func run(cliCtx *cli.Context) error {
 		return cli.NewExitError(err.Error(), -1)
 	}
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt)
+	stop := make(chan os.Signal, 2)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	mux := http.NewServeMux()
 	mux.Handle("/", http.FileServer(statikFS))

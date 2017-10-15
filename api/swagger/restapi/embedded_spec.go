@@ -20,16 +20,14 @@ func init() {
   "produces": [
     "application/json"
   ],
-  "schemes": [
-    "http"
-  ],
   "swagger": "2.0",
   "info": {
     "description": "The web api for ipfs-archive",
     "title": "ipfs-archive",
     "version": "1.0.0"
   },
-  "host": "localhost:7002",
+  "host": "ipfs.archive.network",
+  "basePath": "/api",
   "paths": {
     "/archive": {
       "post": {

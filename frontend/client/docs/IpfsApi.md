@@ -1,6 +1,6 @@
 # IpfsArchive.IpfsApi
 
-All URIs are relative to *http://localhost:7002*
+All URIs are relative to *https://ipfs.archive.network/api*
 
 Method | HTTP request | Description
 ------------- | ------------- | -------------

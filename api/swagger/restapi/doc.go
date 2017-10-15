@@ -7,8 +7,8 @@ The web api for ipfs-archive
 
     Schemes:
       http
-    Host: localhost:7002
-    BasePath: /
+    Host: ipfs.archive.network
+    BasePath: /api
     Version: 1.0.0
 
     Consumes:
