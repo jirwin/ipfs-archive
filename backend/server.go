@@ -62,7 +62,7 @@ func (b *BackendServer) Scrape(ctx netctx.Context, req *ScrapeReq) (*ScrapeResp,
 
 	archiveUrl := &url.URL{
 		Scheme: "https",
-		Host:   "ipfs.io",
+		Host:   "gateway.archive.network",
 		Path:   path.Join("ipfs", hash),
 	}
 
